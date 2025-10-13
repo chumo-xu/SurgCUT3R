@@ -1,0 +1,73 @@
+# Hydra configuration for a minimal finetuning test on your custom SCARED dataset
+
+# --- 模型与检查点配置 ---
+# 使用与预训练权重完全匹配的、更完整的模型定义
+model: "ARCroco3DStereo(ARCroco3DStereoConfig(state_size=768, state_pe='2d', pos_embed='RoPE100', rgb_head=True, pose_head=True,  img_size=(224, 224), head_type='linear', output_mode='pts3d+pose', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), pose_mode=('exp', -inf, inf), enc_embed_dim=1024, enc_depth=24, enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12))"
+
+# !!!重要!!!: 请将此路径替换为您的预训练模型文件的实际路径。
+# 例如: "/path/to/your/pretrained_model.pth"
+pretrained: "/hy-tmp/CUT3R/src/cut3r_512_dpt_4_64.pth"
+load_only_encoder: False
+long_context: False
+fixed_length: True
+resume: null
+benchmark: True
+num_views: 2 # 我们在数据加载器中固定了使用图像对
+num_test_views: 2 # 测试时也使用图像对
+n_corres_train: 0
+n_corres_test: 0
+
+# --- 损失函数配置 ---
+# 我们使用最简单的3D点回归损失，不包含置信度学习和RGB重建损失。
+train_criterion: Regr3DPose(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0)
+# 测试损失函数也进行简化
+test_criterion: Regr3DPose(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0)
+
+# --- 数据集配置 ---
+# 定义我们自己的数据集，并指定数据根目录
+train_dataset_def: MySCARED(ROOT='/hy-tmp/CUT3R/data_all', resolution=224, num_views=${num_views})
+# 每个epoch只进行50个step，用于快速验证
+train_dataset: 50 @ ${train_dataset_def} 
+
+# 测试集也使用我们的数据，只取5个样本进行测试
+test_dataset: 5 @ MySCARED(ROOT='/hy-tmp/CUT3R/data_all', resolution=224, num_views=${num_test_views}, seed=42)
+
+# --- 微调训练参数 ---
+seed: 42
+batch_size: 2 # 使用较小的批量大小
+accum_iter: 1 # 关闭梯度累积，让每次迭代都更新参数
+gradient_checkpointing: True
+epochs: 1 # 只训练一个epoch
+start_epoch: 0
+weight_decay: 0.05
+lr: 1e-5
+min_lr: 1e-6
+warmup_epochs: 1 # 简化warmup
+amp: 0
+
+# --- 通用配置 ---
+num_workers: 0 # 设置为0，用于调试数据加载问题
+world_size: 1
+local-rank: -1
+dist_url: 'env://'
+rank: 0
+gpu: 0
+distributed: False
+dist_backend: 'nccl'
+
+# --- 日志与保存配置 ---
+eval_freq: 1 # 每个epoch都评估一次
+save_freq: 1 # 每个epoch都保存一次
+keep_freq: 1
+print_freq: 5 # 每5个step打印一次日志
+print_img_freq: 50 # 减少图像可视化频率
+num_imgs_vis: 2
+save_dir: 'checkpoints'
+exp_name: 'my_minimal_finetune' # 新的实验名称
+task: 'cut3r'
+logdir: ./${save_dir}/${exp_name}/logs
+output_dir: ./${save_dir}/${exp_name}/
+hydra:
+  verbose: True
+  run:
+    dir: ./${save_dir}/${exp_name} 

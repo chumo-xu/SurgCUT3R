@@ -1,0 +1,132 @@
+# 阶段1配置：从new18权重微调，快速验证Endo3RFlowLoss效果
+# 基于：scared_stage1_medical_adaptationV2new18_with_endo3r.yaml
+# 策略：在已训练好的new18权重基础上添加Endo3RFlowLoss进行微调
+
+# --- 模型配置：与new18完全匹配 ---
+model: ARCroco3DStereo(ARCroco3DStereoConfig(state_size=768, state_pe='2d', pos_embed='RoPE100',
+  rgb_head=True, pose_head=True, patch_embed_cls='ManyAR_PatchEmbed', img_size=(512,
+  512), head_type='dpt', output_mode='pts3d+pose', depth_mode=('exp', -inf, inf),
+  conf_mode=('exp', 1, inf), pose_mode=('exp', -inf, inf), enc_embed_dim=1024, enc_depth=24,
+  enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12, landscape_only=False))
+
+# --- 预训练权重配置 ---
+# 不使用预训练权重，而是从new18的checkpoint恢复
+pretrained: null
+load_only_encoder: False
+long_context: False
+fixed_length: True
+
+# *** 关键配置：从new18权重恢复训练 ***
+# 请修改为您的new18最佳权重路径
+resume: "checkpoints/train_scared_stage1_medical_adaptationV2new18/checkpoint_best.pth"
+# 或者使用最新的checkpoint：
+# resume: "checkpoints/train_scared_stage1_medical_adaptationV2new18/checkpoint_latest.pth"
+
+benchmark: True
+num_views: 16
+num_test_views: 4
+n_corres_train: 0
+n_corres_test: 0
+
+# --- 损失函数配置（微调策略）---
+# 策略：降低Endo3RFlowLoss权重，让模型逐步适应新损失
+# 权重说明：
+# - ConfLoss (alpha=0.2): 与new18基本一致（原来0.3，现在0.2）
+# - Endo3RFlowLoss (0.05): 较低的初始权重，避免训练不稳定
+# - RGBLoss (0.0): 保持为0
+train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis'), alpha=0.2) + 0.05 * Endo3RFlowLoss(flow_strategy="anchor_based") + 0.0 * RGBLoss(L21)
+
+# 验证阶段保持原有损失（用于对比和评估）
+test_criterion:  Regr3DPose_ScaleInv(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) 
+
+# --- 多分辨率配置（512系列）---
+resolution:
+- (512
+- 384)
+- (512
+- 336)
+- (512
+- 288)
+- (512
+- 256)
+- (512
+- 208)
+- (512
+- 144)
+- (384
+- 512)
+- (336
+- 512)
+- (288
+- 512)
+- (256
+- 512)
+
+# --- Dataset Configuration ---
+train_dataset_def: SCARED_Multinew18(allow_repeat=True,ROOT='/hy-tmp/hy-tmp/CUT3R/dataset/processed_scared', split='train', aug_crop=16, resolution=(256,192), transform=SeqColorJitter, num_views=${num_views}, n_corres=${n_corres_train})
+train_dataset:  ${train_dataset_def}
+
+test_dataset_def: SCARED_Multinew18(ROOT='/hy-tmp/hy-tmp/CUT3R/dataset/processed_scared', split='val', resolution=(256,192), num_views=${num_test_views}, seed=42, n_corres=${n_corres_test})
+test_dataset:  ${test_dataset_def}
+
+# --- 微调超参数配置 ---
+seed: 0
+batch_size: 8
+accum_iter: 4
+gradient_checkpointing: true
+
+# 微调设置：较短的训练周期和较小的学习率
+epochs: 2          # 短期验证，只训练2个epoch
+start_epoch: 0     # 从第0个epoch开始（会被resume覆盖）
+weight_decay: 0.05
+lr: 5.0e-06        # 降低学习率，避免破坏已训练的特征
+min_lr: 1.0e-07    # 对应降低最小学习率
+warmup_epochs: 0.1 # 短暂的warmup
+amp: 1
+
+num_workers: 8
+world_size: 1
+local-rank: -1
+dist_url: 'env://'
+rank: 0
+gpu: 0
+distributed: False
+dist_backend: 'nccl'
+
+eval_freq: 1
+save_freq: 1
+keep_freq: 1
+print_freq: 10
+print_img_freq: 100
+num_imgs_vis: 4
+save_dir: 'checkpoints'
+exp_name: 'train_scared_endo3r_finetune_from_new18'  # 新的实验名称
+task: 'cut3r'
+logdir: ./${save_dir}/${exp_name}/logs
+output_dir: ./${save_dir}/${exp_name}/
+hydra:
+  verbose: True
+  run:
+    dir: ./${save_dir}/${exp_name}
+
+# --- 微调策略说明 ---
+# 目标：快速验证Endo3RFlowLoss在已训练权重上的效果
+# 
+# 预期结果：
+# 1. endo3r_avg_loss 应该从初始值逐渐下降
+# 2. endo3r_valid_pairs 应该稳定在合理范围（>50%）
+# 3. 总体损失应该继续下降或保持稳定
+# 4. 深度和位姿精度应该有所改善
+#
+# 成功标准：
+# - 如果 endo3r_avg_loss 稳定下降且有效帧对>50%，说明Endo3RFlowLoss有效
+# - 如果效果明显，可以进入阶段2：从512pth重新训练获得最优效果
+# - 如果效果不明显，需要调整超参数（权重、学习率等）
+#
+# 监控指标：
+# - endo3r_avg_loss: Endo3R光流损失趋势
+# - endo3r_valid_pairs: 有效帧对数量（目标>50%）
+# - endo3r_total_pairs: 总帧对数量（应该是15）
+# - 对比原new18的深度和位姿精度指标
+
+

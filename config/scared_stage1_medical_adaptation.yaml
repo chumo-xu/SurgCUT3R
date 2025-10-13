@@ -1,0 +1,99 @@
+# 第一阶段：医学数据域适应
+# 基于stage3.yaml，训练30 epoch，4个视角，不冻结encoder
+# 让模型充分适应医学数据的特征
+
+# --- 模型配置：与cut3r_512_dpt_4_64.pth权重完全匹配 ---
+model: ARCroco3DStereo(ARCroco3DStereoConfig(state_size=768, state_pe='2d', pos_embed='RoPE100',
+  rgb_head=True, pose_head=True, patch_embed_cls='ManyAR_PatchEmbed', img_size=(512,
+  512), head_type='dpt', output_mode='pts3d+pose', depth_mode=('exp', -inf, inf),
+  conf_mode=('exp', 1, inf), pose_mode=('exp', -inf, inf), enc_embed_dim=1024, enc_depth=24,
+  enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12, landscape_only=False))
+
+# --- 预训练权重配置 ---
+pretrained: "/hy-tmp/CUT3R/src/cut3r_512_dpt_4_64.pth"
+load_only_encoder: False
+long_context: False
+fixed_length: True
+resume: null
+benchmark: True
+num_views: 4
+num_test_views: 4
+n_corres_train: 0
+n_corres_test: 0
+
+# --- 损失函数配置 ---
+train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis'), alpha=0.2) + RGBLoss(MSE)
+test_criterion: Regr3DPose(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + Regr3DPose_ScaleInv(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + RGBLoss(L21)
+
+# --- 多分辨率配置（512系列）---
+resolution:
+- (512
+- 384)
+- (512
+- 336)
+- (512
+- 288)
+- (512
+- 256)
+- (512
+- 208)
+- (512
+- 144)
+- (384
+- 512)
+- (336
+- 512)
+- (288
+- 512)
+- (256
+- 512)
+
+# --- Dataset Configuration ---
+# We only need to define our new dataset
+train_dataset_def: SCARED_Multi(allow_repeat=True,ROOT='/hy-tmp/CUT3R/processed_scared_split_new', split='train', aug_crop=16, resolution=[(512, 384), (512, 336), (512, 288), (512, 256), (512, 208),
+  (512, 144), (384, 512), (336, 512), (288, 512), (256, 512)], transform=SeqColorJitter, num_views=${num_views}, n_corres=${n_corres_train})
+train_dataset:  ${train_dataset_def} # Use the full training dataset for each epoch
+
+# Use the full validation set
+test_dataset_def: SCARED_Multi(ROOT='/hy-tmp/CUT3R/processed_scared_split_new', split='val', resolution=224, num_views=${num_test_views}, seed=42, n_corres=${n_corres_test})
+test_dataset:  ${test_dataset_def}
+
+
+# --- 针对32GB V100优化的训练参数 ---
+
+seed: 0
+batch_size: 4
+accum_iter: 4
+gradient_checkpointing: true
+epochs: 20
+start_epoch: 0
+weight_decay: 0.05
+lr: 1.0e-05
+min_lr: 1.0e-06
+warmup_epochs: 2
+amp: 1
+
+num_workers: 8
+world_size: 1
+local-rank: -1
+dist_url: 'env://'
+rank: 0
+gpu: 0
+distributed: False
+dist_backend: 'nccl'
+
+eval_freq: 1
+save_freq: 1
+keep_freq: 10
+print_freq: 10
+print_img_freq: 1000
+num_imgs_vis: 2
+save_dir: 'checkpoints'
+exp_name: 'train_scared_stage1_medical_adaptation'
+task: 'cut3r'
+logdir: ./${save_dir}/${exp_name}/logs
+output_dir: ./${save_dir}/${exp_name}/
+hydra:
+  verbose: True
+  run:
+    dir: ./${save_dir}/${exp_name}

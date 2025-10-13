@@ -1,0 +1,25 @@
+# This file inherits from scared_stage1_medical_adaptationV2new18.yaml
+# And configures the training for the second stage using the CVD self-supervised loss.
+defaults:
+  - scared_stage1_medical_adaptationV2new18
+
+# --- Override settings for Stage 2 ---
+# Point to the checkpoint from Stage 1
+pretrained: "/hy-tmp/hy-tmp/CUT3R/src/checkpoints/train_scared_stage1_medical_adaptationV2new18/checkpoint-5.pth"
+
+# Use the new self-supervised loss. The original criterion is replaced.
+train_criterion: ConsistentVideoDepthLoss(raft_model, w_flow=0.2, w_photo=1.0, w_smooth=0.1, temporal_steps=[1, 2, 4])
+
+# It's good practice to use a lower learning rate for fine-tuning
+lr: 2.0e-06
+min_lr: 1.0e-07
+warmup_epochs: 0.1
+epochs: 10 # Train for more epochs in the fine-tuning stage
+
+# Update experiment name and directories to avoid overwriting stage 1 results
+exp_name: 'train_scared_stage2_cvd_finetune'
+logdir: ./${save_dir}/${exp_name}/logs
+output_dir: ./${save_dir}/${exp_name}/
+hydra:
+  run:
+    dir: ./${save_dir}/${exp_name}

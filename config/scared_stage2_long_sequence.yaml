@@ -1,0 +1,74 @@
+# 第二阶段：长序列训练
+# 基于dpt_512_vary_4_64.yaml，训练10 epoch，16个视角，冻结encoder
+# 专门训练长序列处理能力
+
+# --- 模型配置：冻结encoder，只训练decoder部分 ---
+model: "ARCroco3DStereo(ARCroco3DStereoConfig(freeze='encoder', state_size=768, state_pe='2d', pos_embed='RoPE100', rgb_head=True, pose_head=True, patch_embed_cls='ManyAR_PatchEmbed', img_size=(512, 512), head_type='dpt', output_mode='pts3d+pose', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), pose_mode=('exp', -inf, inf), enc_embed_dim=1024, enc_depth=24, enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12, landscape_only=False))"
+
+# --- 从第一阶段的最终checkpoint开始 ---
+pretrained: "/hy-tmp/CUT3R/src/checkpoints/train_scared_stage1_medical_adaptationV2/checkpoint-best.pth"
+load_only_encoder: False
+long_context: True   # 启用长序列处理
+fixed_length: False  # 允许可变长度序列
+resume: null
+benchmark: False     # 长序列训练时关闭benchmark模式
+num_views: 16        # 长序列训练：16个视角
+num_test_views: 4    # 测试时保持4个视角以便对比
+n_corres_train: 0
+n_corres_test: 0
+
+# --- 损失函数配置 ---
+train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis'), alpha=0.2) + RGBLoss(MSE)
+test_criterion: Regr3DPose(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + Regr3DPose_ScaleInv(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + RGBLoss(L21)
+
+# --- 多分辨率配置（与第一阶段保持一致）---
+resolution: [[512, 384], [512, 336], [512, 288], [512, 256], [512, 208], [512, 144], [384, 512], [336, 512], [288, 512], [256, 512]]
+
+# --- 允许重复采样（长序列训练需要） ---
+allow_repeat: True
+
+# --- 医学数据集配置：长序列训练 ---
+train_dataset_def: SCARED_Multi(allow_repeat=${allow_repeat}, ROOT='/hy-tmp/CUT3R/processed_scared_split_new', split='train', aug_crop=16, resolution=${resolution}, transform=SeqColorJitter, num_views=${num_views}, n_corres=${n_corres_train})
+train_dataset: ${train_dataset_def}
+
+test_dataset_def: SCARED_Multi(ROOT='/hy-tmp/CUT3R/processed_scared_split_new', split='val', resolution=${resolution}, num_views=${num_test_views}, seed=42, n_corres=${n_corres_test})
+test_dataset: ${test_dataset_def}
+
+# --- 长序列训练优化参数 ---
+seed: 42
+batch_size: 2        # 16个视角需要很小的batch size
+accum_iter: 16       # 大幅梯度累积，有效batch size = 2*16 = 32
+gradient_checkpointing: True
+epochs: 10           # 快速获得长序列能力
+start_epoch: 0
+
+# --- 长序列专用学习率设置 ---
+weight_decay: 0.05
+lr: 5e-6            # 较小学习率，因为encoder已冻结
+min_lr: 1e-7        # 最小学习率
+warmup_epochs: 1    # 短暂warmup
+
+# --- 输出目录和日志配置 ---
+save_dir: 'checkpoints'
+exp_name: 'scared_stage2_long_sequence'
+output_dir: ./${save_dir}/${exp_name}/
+logdir: ./${save_dir}/${exp_name}/logs
+
+# --- 保存和评估设置 ---
+save_freq: 2        # 每2个epoch保存一次（总共才10个epoch）
+eval_freq: 1        # 每个epoch都评估
+print_freq: 20      # 更频繁的打印（长序列训练步骤较少）
+keep_freq: 5        # 保留检查点频率
+print_img_freq: 100 # 图像打印频率
+num_imgs_vis: 4     # 可视化图像数量
+task: 'cut3r'       # 任务类型
+
+# --- 长序列训练优化设置 ---
+pin_memory: True
+num_workers: 2      # 长序列时减少worker数量避免内存问题
+
+# --- Hydra配置 ---
+hydra:
+  verbose: True
+  run:
+    dir: ./${save_dir}/${exp_name} 

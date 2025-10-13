@@ -1,0 +1,61 @@
+# 优化的SCARED数据集finetune配置 - 策略一：直接从512+dpt开始
+# 针对32GB V100优化，预期15-25 epoch收敛
+
+# --- 模型配置：必须与cut3r_512_dpt_4_64.pth权重匹配 ---
+model: "ARCroco3DStereo(ARCroco3DStereoConfig(state_size=768, state_pe='2d', pos_embed='RoPE100', rgb_head=True, pose_head=True, patch_embed_cls='ManyAR_PatchEmbed', img_size=(512, 512), head_type='dpt', output_mode='pts3d+pose', depth_mode=('exp', -inf, inf), conf_mode=('exp', 1, inf), pose_mode=('exp', -inf, inf), enc_embed_dim=1024, enc_depth=24, enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12, landscape_only=False))"
+
+# --- 预训练权重配置 ---
+pretrained: "/hy-tmp/CUT3R/src/cut3r_512_dpt_4_64.pth"
+load_only_encoder: False
+long_context: False
+fixed_length: True
+resume: null
+benchmark: True
+num_views: 4
+num_test_views: 4
+n_corres_train: 0
+n_corres_test: 0
+
+# --- 损失函数配置 ---
+train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis'), alpha=0.2) + RGBLoss(MSE)
+test_criterion: Regr3DPose(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + Regr3DPose_ScaleInv(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + RGBLoss(L21)
+
+# --- 多分辨率配置（与原始512+dpt训练一致） ---
+resolution:
+- [512, 384]
+- [512, 336] 
+- [512, 288]
+- [512, 256]
+- [384, 512]
+- [336, 512]
+- [288, 512]
+- [256, 512]
+
+# --- 数据集配置 ---
+train_dataset_def: SCARED_Multi(ROOT='/hy-tmp/CUT3R/processed_scared_split_new', split='train', aug_crop=16, resolution=${resolution}, transform=SeqColorJitter, num_views=${num_views}, n_corres=${n_corres_train})
+train_dataset: ${train_dataset_def}
+
+test_dataset_def: SCARED_Multi(ROOT='/hy-tmp/CUT3R/processed_scared_split_new', split='val', resolution=${resolution}, num_views=${num_test_views}, seed=42, n_corres=${n_corres_test})
+test_dataset: ${test_dataset_def}
+
+# --- 针对32GB V100优化的训练参数 ---
+seed: 42
+batch_size: 8        # 32GB V100上512分辨率的最优batch size
+accum_iter: 4        # 梯度累积，有效batch size = 8*4 = 32
+gradient_checkpointing: True
+epochs: 25           # 预期15-25 epoch收敛
+start_epoch: 0
+
+# --- finetune专用学习率设置 ---
+weight_decay: 0.05
+lr: 1e-5            # 比预训练更小的学习率，避免灾难性遗忘
+min_lr: 1e-7        # 更小的最小学习率
+warmup_epochs: 3    # 更长的warmup确保稳定
+
+# --- 其他优化设置 ---
+save_freq: 5        # 每5个epoch保存一次
+eval_freq: 2        # 每2个epoch评估一次
+print_freq: 50      # 每50个step打印一次
+
+# --- 输出目录 ---
+output_dir: "checkpoints/scared_finetune_512dpt" 

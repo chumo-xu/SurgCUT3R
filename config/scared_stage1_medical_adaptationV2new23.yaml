@@ -1,0 +1,107 @@
+# 还是12000scared训练，间隔3 view16 正常confloss 加selfsupervisedloss
+
+# --- 模型配置：与cut3r_512_dpt_4_64.pth权重完全匹配 ---
+model: ARCroco3DStereo(ARCroco3DStereoConfig(state_size=768, state_pe='2d', pos_embed='RoPE100',
+  rgb_head=True, pose_head=True, patch_embed_cls='ManyAR_PatchEmbed', img_size=(512,
+  512), head_type='dpt', output_mode='pts3d+pose', depth_mode=('exp', -inf, inf),
+  conf_mode=('exp', 1, inf), pose_mode=('exp', -inf, inf), enc_embed_dim=1024, enc_depth=24,
+  enc_num_heads=16, dec_embed_dim=768, dec_depth=12, dec_num_heads=12, landscape_only=False))
+
+# --- 预训练权重配置 ---
+pretrained: "/hy-tmp/hy-tmp/CUT3R/src/checkpoints/train_scared_stage1_medical_adaptationV2new18/checkpoint-5.pth"
+load_only_encoder: False
+long_context: False
+fixed_length: True
+resume: null
+benchmark: True
+num_views: 16
+num_test_views: 4
+n_corres_train: 0
+n_corres_test: 0
+
+# --- 损失函数配置 ---
+# 修复方案1：统一训练和验证损失函数
+##train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis', gt_scale=True), alpha=0.1) + RGBLoss(L21)
+#test_criterion: ConfLoss(Regr3DPose(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0), alpha=0.1) + Regr3DPose_ScaleInv(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + RGBLoss(L21)
+
+# 修复方案2：降低置信度权重，防止过度自适应
+# train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis', gt_scale=True), alpha=0.05) + RGBLoss(L21)
+# test_criterion: Regr3DPose(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + Regr3DPose_ScaleInv(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) + RGBLoss(L21)
+
+# 原始配置（备份）
+#train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis'), alpha=0.3) + 0.0 * RGBLoss(L21)
+test_criterion:  Regr3DPose_ScaleInv(L21, norm_mode='?avg_dis', gt_scale=True, sky_loss_value=0) 
+train_criterion: ConfLoss(Regr3DPoseBatchList(L21, norm_mode='?avg_dis'), alpha=0.3) + 0.0 * RGBLoss(L21) + SelfSupervisedLoss(raft_model, alpha_photo=20, sigma_rigid=1.0)
+
+# --- 多分辨率配置（512系列）---
+resolution:
+- (512
+- 384)
+- (512
+- 336)
+- (512
+- 288)
+- (512
+- 256)
+- (512
+- 208)
+- (512
+- 144)
+- (384
+- 512)
+- (336
+- 512)
+- (288
+- 512)
+- (256
+- 512)
+
+# --- Dataset Configuration ---
+# We only need to define our new dataset
+train_dataset_def: SCARED_Multinew18(allow_repeat=True,ROOT='/hy-tmp/hy-tmp/CUT3R/dataset/processed_scared', split='train', aug_crop=16, resolution=(256,192), transform=SeqColorJitter, num_views=${num_views}, n_corres=${n_corres_train})
+train_dataset:  ${train_dataset_def} # Use the full training dataset for each epoch
+
+# Use the full validation set
+test_dataset_def: SCARED_Multinew18(ROOT='/hy-tmp/hy-tmp/CUT3R/dataset/processed_scared', split='val', resolution=(256,192), num_views=${num_test_views}, seed=42, n_corres=${n_corres_test})
+test_dataset:  ${test_dataset_def}
+
+
+
+
+
+seed: 0
+batch_size: 8
+accum_iter: 4
+gradient_checkpointing: true
+epochs: 5
+start_epoch: 0
+weight_decay: 0.05
+lr: 1.0e-05
+min_lr: 1.0e-06
+warmup_epochs: 0.5
+amp: 1
+
+num_workers: 8
+world_size: 1
+local-rank: -1
+dist_url: 'env://'
+rank: 0
+gpu: 0
+distributed: False
+dist_backend: 'nccl'
+
+eval_freq: 1
+save_freq: 1
+keep_freq: 1
+print_freq: 10
+print_img_freq: 100
+num_imgs_vis: 4
+save_dir: 'checkpoints'
+exp_name: 'train_scared_stage1_medical_adaptationV2new23'
+task: 'cut3r'
+logdir: ./${save_dir}/${exp_name}/logs
+output_dir: ./${save_dir}/${exp_name}/
+hydra:
+  verbose: True
+  run:
+    dir: ./${save_dir}/${exp_name}

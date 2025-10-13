@@ -1,0 +1,103 @@
+{
+  "evaluation_config": {
+    "depth": {
+      "min_depth_m": 0.001,
+      "max_depth_m": 150.0,
+      "min_valid_pixels": 1000,
+      "evaluation_metrics": ["abs_rel", "sq_rel", "rmse", "rmse_log", "a1", "a2", "a3"]
+    },
+    "pose": {
+      "window_size": 5,
+      "window_strategy": "non_overlapping",
+      "alignment_method": "start_point_align_with_scale",
+      "evaluation_metrics": ["gate_rmse", "late_rmse_mean", "late_rmse_std"]
+    },
+    "general": {
+      "verbose": true,
+      "save_detailed_results": true,
+      "generate_visualizations": true
+    }
+  },
+  
+  "data_formats": {
+    "depth": {
+      "supported_formats": ["npy_dir", "npz_file", "tiff_dir"],
+      "supported_units": ["mm", "m"],
+      "default_format": "npz_file",
+      "default_unit": "m"
+    },
+    "pose": {
+      "supported_formats": ["npz_dir", "npz_file", "txt_file", "json_file"],
+      "supported_units": ["mm", "m"],
+      "coordinate_system": "cam2world",
+      "matrix_size": [4, 4],
+      "default_format": "npz_file",
+      "default_unit": "m"
+    }
+  },
+  
+  "output_config": {
+    "save_formats": ["json", "txt"],
+    "include_per_frame_data": true,
+    "include_processing_stats": true,
+    "generate_summary_report": true
+  },
+  
+  "performance_thresholds": {
+    "depth": {
+      "excellent": {"a1": 0.8, "abs_rel": 0.1},
+      "good": {"a1": 0.6, "abs_rel": 0.2},
+      "acceptable": {"a1": 0.4, "abs_rel": 0.3}
+    },
+    "pose": {
+      "excellent": {"gate_rmse": 0.01, "late_rmse": 0.01},
+      "good": {"gate_rmse": 0.05, "late_rmse": 0.05},
+      "acceptable": {"gate_rmse": 0.1, "late_rmse": 0.1}
+    }
+  },
+  
+  "dataset_presets": {
+    "scared": {
+      "depth": {
+        "format": "tiff_dir",
+        "unit": "mm",
+        "crop_rows": 1024,
+        "min_depth_m": 0.001,
+        "max_depth_m": 300.0
+      },
+      "pose": {
+        "format": "npz_file",
+        "unit": "mm",
+        "coordinate_system": "world2cam_to_cam2world"
+      }
+    },
+    "kitti": {
+      "depth": {
+        "format": "npz_file",
+        "unit": "m",
+        "min_depth_m": 0.1,
+        "max_depth_m": 80.0
+      },
+      "pose": {
+        "format": "txt_file",
+        "unit": "m",
+        "text_format": "kitti"
+      }
+    },
+    "endodac": {
+      "depth": {
+        "format": "npz_file", 
+        "unit": "mm",
+        "min_depth_m": 0.001,
+        "max_depth_m": 150.0
+      },
+      "pose": {
+        "format": "npz_file",
+        "unit": "m"
+      }
+    }
+  }
+}
+
+
+

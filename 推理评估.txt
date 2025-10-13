@@ -1,0 +1,6 @@
+(cut3r) root@I23187465cf016012ed:/hy-tmp/hy-tmp/CUT3R# python demo_online.py --model_path /hy-tmp/hy-tmp/CUT3R/src/checkpoints/train_scared_stage1_medical_adaptationV2new18/checkpoint-5.pth --size 256 --seq_path /hy-tmp/hy-tmp/CUT3R/eval/eval_data/test/dataset9/keyframe3_downsampled64/Scared9_3_Left_Images --vis_threshold 1.5 --output_dir /hy-tmp/hy-tmp/CUT3R/tmptest
+
+(cut3r) root@I23187465cf016012ed:/hy-tmp/hy-tmp/CUT3R# python /hy-tmp/hy-tmp/CUT3R/eval/evaluate_depth_universal.py --gt_path /hy-tmp/hy-tmp/CUT3R/eval/eval_data/test/dataset8/keyframe1/keyframe1_downsampled64/gt_depths_8_1.npz --pred_input /hy-tmp/hy-tmp/CUT3R/tmptest/depth --output_dir /hy-tmp/hy-tmp/CUT3R/tmptest --pred_unit m
+
+(cut3r) root@I23187465cf016012ed:/hy-tmp/hy-tmp/CUT3R# python /hy-tmp/hy-tmp/CUT3R/eval/evaluate_cut3r_endodac.py --gt_path /hy-tmp/hy-tmp/CUT3R/examples/keyframe1/gt_poses_per10.npz --pred_dir /hy-tmp/hy-tmp/CUT3R/inference_result/64/surgical3rtry5-1/camera --output_dir /hy-tmp/hy-tmp/CUT3R/quantitative_result/64/surgical3rtry5-1 --visualize --gt_format w2c
+

@@ -1,0 +1,18 @@
+surgical3rtry1
+surgical3rtry2
+surgical3rtry3 123都是scared+c3vd
+surgical3rtry4 4之后是scared+stereomis 和仅confloss
+surgical3rtry4stage2 在4的基础上view16
+surgical3rtry5 在4的基础上+dinoflowloss
+surgical3rtry6 在4的基础上+几何一致性loss
+
+
+new14  224
+new15  256x192 4view
+new16  16view
+new17  4view 仅confloss
+new17stage2 在17基础上16view
+new17stage2-2 从512pth开始16view
+new18 还是12000scared训练，间隔3 view16 正常confloss
+new19 还是12000scared训练，间隔2 view16 正常confloss
+new20 还是12000scared训练，间隔3 view16 正常confloss+smoothloss
