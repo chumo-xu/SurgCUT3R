@@ -5,55 +5,20 @@
 <hr>
 
 <br>
-Official implementation of <strong>Continuous 3D Perception Model with Persistent State</strong>, CVPR 2025 (Oral)
-
-[*QianqianWang**](https://qianqianwang68.github.io/),
-[*Yifei Zhang**](https://forrest-110.github.io/),
-[*Aleksander Holynski*](https://holynski.org/),
-[*Alexei A Efros*](https://people.eecs.berkeley.edu/~efros/),
-[*Angjoo Kanazawa*](https://people.eecs.berkeley.edu/~kanazawa/)
+Official implementation of <strong>Surgical Scene-Aware Continuous Understanding of Temporal 3D Representation</strong>
 
 
-(*: equal contribution)
-
-<div style="line-height: 1;">
-  <a href="https://cut3r.github.io/" target="_blank" style="margin: 2px;">
-    <img alt="Website" src="https://img.shields.io/badge/Website-CUT3R-536af5?color=536af5&logoColor=white" style="display: inline-block; vertical-align: middle;"/>
-  </a>
-  <a href="https://arxiv.org/pdf/2501.12387" target="_blank" style="margin: 2px;">
-    <img alt="Arxiv" src="https://img.shields.io/badge/Arxiv-CUT3R-red?logo=%23B31B1B" style="display: inline-block; vertical-align: middle;"/>
-  </a>
-</div>
 
 
-![Example of capabilities](assets/ezgif.com-video-to-gif-converter.gif)
-
-## Table of Contents
-- [TODO](#todo)
-- [Get Started](#getting-started)
-  - [Installation](#installation)
-  - [Checkpoints](#download-checkpoints)
-  - [Inference](#inference)
-- [Datasets](#datasets)
-- [Evaluation](#evaluation)
-  - [Datasets](#datasets-1)
-  - [Evaluation Scripts](#evaluation-scripts)
-- [Training and Fine-tuning](#training-and-fine-tuning)
-- [Acknowledgements](#acknowledgements)
-- [Citation](#citation)
-
-## TODO
-- [x] Release multi-view stereo results of DL3DV dataset.
-- [ ] Online demo integrated with WebCam
 
 ## Getting Started
 
 ### Installation
 
-1. Clone CUT3R.
+1. Clone MASt3R-SLAM and SurgCUT3R.
 ```bash
-git clone https://github.com/CUT3R/CUT3R.git
-cd CUT3R
+git clone https://github.com/chumo-xu/SurgCUT3R.git
+cd SurgCUT3R
 ```
 
 2. Create the environment.
