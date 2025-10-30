@@ -16,53 +16,17 @@ Official implementation of <strong>Surgical Scene-Aware Continuous Understanding
 ### Installation
 
 1. Clone MASt3R-SLAM and SurgCUT3R.
-```bash
-git clone https://github.com/chumo-xu/SurgCUT3R.git
-cd SurgCUT3R
-```
+First follow the instruction of CUT3R to install it. Then follow the instruction of MASt3R-SLAM to install it in the folder of CUT3R to make sure that the environment works in the training process.
 
-2. Create the environment.
-```bash
-conda create -n cut3r python=3.11 cmake=3.14.0
-conda activate cut3r
-conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia  # use the correct version of cuda for your system
-pip install -r requirements.txt
-# issues with pytorch dataloader, see https://github.com/pytorch/pytorch/issues/99625
-conda install 'llvm-openmp<16'
-# for training logging
-pip install git+https://github.com/nerfstudio-project/gsplat.git
-# for evaluation
-pip install evo
-pip install open3d
-```
 
-3. Compile the cuda kernels for RoPE (as in CroCo v2).
-```bash
-cd src/croco/models/curope/
-python setup.py build_ext --inplace
-cd ../../../../
-```
 
 ### Download Checkpoints
 
 We currently provide checkpoints on Google Drive:
 
-| Modelname   | Training resolutions | #Views| Head |
-|-------------|----------------------|-------|------|
-| [`cut3r_224_linear_4.pth`](https://drive.google.com/file/d/11dAgFkWHpaOHsR6iuitlB_v4NFFBrWjy/view?usp=drive_link) | 224x224 | 16 | Linear |
-| [`cut3r_512_dpt_4_64.pth`](https://drive.google.com/file/d/1Asz-ZB3FfpzZYwunhQvNPZEUA8XUNAYD/view?usp=drive_link) | 512x384, 512x336, 512x288, 512x256, 512x160, 384x512, 336x512, 288x512, 256x512, 160x512 | 4-64 | DPT |
+| [`surgcut3r_local.pth`](https://drive.google.com/file/d/1gcmuXFp5aHoqoKySidQkAZ8EZwZAhKJg/view?usp=drive_link) 
+| [`surgcut3r_global.pth`](https://drive.google.com/file/d/1e3sASko5xfvm4lWzFTzxf3suvWxfuusa/view?usp=drive_link) 
 
-> `cut3r_224_linear_4.pth` is our intermediate checkpoint and `cut3r_512_dpt_4_64.pth` is our final checkpoint.
-
-To download the weights, run the following commands:
-```bash
-cd src
-# for 224 linear ckpt
-gdown --fuzzy https://drive.google.com/file/d/11dAgFkWHpaOHsR6iuitlB_v4NFFBrWjy/view?usp=drive_link 
-# for 512 dpt ckpt
-gdown --fuzzy https://drive.google.com/file/d/1Asz-ZB3FfpzZYwunhQvNPZEUA8XUNAYD/view?usp=drive_link
-cd ..
-```
 
 ### Inference
 
@@ -152,22 +116,11 @@ Our code is based on the following awesome repositories:
 - [MonST3R](https://github.com/Junyi42/monst3r.git)
 - [Spann3R](https://github.com/HengyiWang/spann3r.git)
 - [Viser](https://github.com/nerfstudio-project/viser)
+- [CUT3R](https://github.com/CUT3R/CUT3R.git)
+- [Endo3R](https://github.com/wrld/Endo3R.git)
 
 We thank the authors for releasing their code!
 
 
 
-## Citation
 
-If you find our work useful, please cite:
-
-```bibtex
-@article{wang2025continuous,
-  title={Continuous 3D Perception Model with Persistent State},
-  author={Wang, Qianqian and Zhang, Yifei and Holynski, Aleksander and Efros, Alexei A and Kanazawa, Angjoo},
-  journal={arXiv preprint arXiv:2501.12387},
-  year={2025}
-}
-```
-
->>>>>>> bbdf76e (Initial commit)
