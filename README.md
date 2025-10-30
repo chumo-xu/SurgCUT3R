@@ -1,10 +1,8 @@
 <<<<<<< HEAD
 # SurgCUT3R
 =======
-# Continuous 3D Perception Model with Persistent State
-<div align="center">
-  <img src="./assets/factory-ezgif.com-video-speed.gif"  alt="CUT3R" />
-</div>
+# Surgical Scene-Aware Continuous Understanding of Temporal 3D Representation
+
 
 <hr>
 
