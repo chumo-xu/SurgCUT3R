@@ -1,7 +1,5 @@
-<<<<<<< HEAD
-# SurgCUT3R
-=======
-# Surgical Scene-Aware Continuous Understanding of Temporal 3D Representation
+
+# SurgCUT3R: Surgical Scene-Aware Continuous Understanding of Temporal 3D Representation
 
 
 <hr>
