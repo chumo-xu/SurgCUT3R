@@ -17,7 +17,7 @@ Official implementation of <strong>Surgical Scene-Aware Continuous Understanding
 
 1. Clone MASt3R-SLAM and SurgCUT3R.
 First follow the instruction of CUT3R to install it. Then follow the instruction of MASt3R-SLAM to install it in the folder of CUT3R to make sure that the environment works in the training process.
-
+2. We also have the docker for this project.
 
 
 ### Download Checkpoints
@@ -44,9 +44,6 @@ python demo.py --model_path MODEL_PATH --seq_path SEQ_PATH --size SIZE --vis_thr
 # the following script will run inference with global alignment and visualize the output with viser on port 8080
 python demo_ga.py --model_path MODEL_PATH --seq_path SEQ_PATH --size SIZE --vis_threshold VIS_THRESHOLD --output_dir OUT_DIR
 ```
-Output results will be saved to `output_dir`.
-
-> Currently, we accelerate the feedforward process by processing inputs in parallel within the encoder, which results in linear memory consumption as the number of frames increases.
 
 
 
